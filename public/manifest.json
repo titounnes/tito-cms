@@ -1,0 +1,30 @@
+{
+    "name": "eProject Technology",
+    "short_name": "eProject",
+    "icons": [{
+      "src": "/icons/e-project.png",
+        "sizes": "128x128",
+        "type": "image/png"
+      }, {
+        "src": "/icons/e-project.png",
+        "sizes": "144x144",
+        "type": "image/png"
+      }, {
+        "src": "/icons/e-project.png",
+        "sizes": "152x152",
+        "type": "image/png"
+      }, {
+        "src": "/icons/e-project.png",
+        "sizes": "192x192",
+        "type": "image/png"
+      }, {
+        "src": "/icons/e-project.png",
+        "sizes": "256x256",
+        "type": "image/png"
+      }],
+    "start_url": "/",
+    "display": "standalone",
+    "orientation": "portrait",
+    "background_color": "#8e44ad",
+    "theme_color": "#8e44ad"
+  }
