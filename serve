@@ -1,3 +1,4 @@
+#!/usr/bin/env php
 <?php
 echo "\n";
 echo "Tito-CMS  Line Tool - Server Time: ".date('Y-m-d H:i:s')."\n\n";
