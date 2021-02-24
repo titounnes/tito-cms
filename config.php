@@ -3,8 +3,10 @@
 }
 $config = [
     'path' => [
-        'draft' => 'draft',
-        'hugo' => 'content',
-        'auth' => 'data',
-    ]
+        'draft' => APPPATH .'draft/',
+        'hugo' => APPPATH . 'content/',//sesiakan dengan direktori kerja hugo Anda
+        'auth' => APPPATH . 'data/',
+    ],
+    'html' => APPPATH . 'html/',
+    'template' => APPPATH . 'template/'
 ];

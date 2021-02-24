@@ -30,7 +30,7 @@ class app{
     }
 
     function loadView(string $view){
-        return file_get_contents(APPPATH . sprintf('html/%s.html', $view));
+        return file_get_contents($this->config['html']. $view .'.html');
     }
 
     function install($username, $password){
@@ -71,7 +71,7 @@ class app{
     }
 
     function open($name){
-        $path = APPPATH . sprintf($this->config['path']['draft'].'/');
+        $path = $this->config['path']['draft'];
         $d = dir($path);
         if($d){
             $dir = [];
