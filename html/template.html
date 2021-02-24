@@ -15,6 +15,7 @@
         <style>
             body{
                 font-family: temporarium;
+                font-size: 18px;
             }
             #preview{
                 border-color: darkslategrey;
@@ -36,6 +37,29 @@
             input, textarea{
                 margin: 5px 5px 5px 5px;
             }
+            .btn{
+                margin:2px 2px 2px 2px;
+            }
+            h1{
+                font-size: 24px;
+                font-weight: bolder;
+                text-transform: uppercase;
+                text-align: center;
+            }
+            h2{
+                font-size: 22px;
+                font-weight: bold;
+                text-transform: capitalize;
+            }
+            h3{
+                font-size: 20px;
+                text-transform: capitalize;
+            }
+            p{
+                font-size: 18px;
+                text-align: justify;
+                text-indent: 42px;
+            }
         </style>
         <script>
             // if('serviceWorker' in navigator) {
@@ -55,13 +79,23 @@
     <script>
         editor = document.getElementById('editor')
         preview = document.getElementById('preview')
+        message = document.getElementById('message')
+        alertDiv = document.getElementById('alert');
+        title = document.getElementById('title')
+        tags = document.getElementById('tags')
+        category = document.getElementById('category')
+        draftList = document.getElementById('draft')
+        postList = document.getElementById('post')
+        btnDraft = document.getElementById('btn-draft')
+        btnPublish = document.getElementById('btn-publish')
+        btnUnpublish = document.getElementById('btn-unpublish')
         var id = '';
         if(preview && editor){
             preview.innerHTML = markdown.toHTML( editor.value )
         }
         if(editor){
             editor.addEventListener('keyup', function(e){
-                document.getElementById('alert').hidden = true;
+                alertDiv.hidden = true;
                 preview.innerHTML = markdown.toHTML( this.value ) 
             })
 
@@ -85,24 +119,24 @@
                 submit.item(i).addEventListener('click', function(e){
                     e.preventDefault();
                     if(!document.getElementById('title').value){
-                        document.getElementById('alert').hidden = false;
+                        alertDiv.hidden = false;
                         message.textContent = 'Title must be not null.'
                         return;
                     }
                     var xhttp = new XMLHttpRequest();
                     xhttp.onreadystatechange = function() {
                         if (this.readyState == 4) {
-                            message = document.getElementById('message')
-                            document.getElementById('alert').hidden = false;
+                            alertDiv.hidden = false;
                             if(this.status == 200){
                                 output = JSON.parse(this.response)
                                 id = output[0].meta.id;
-                                document.getElementById('draft').innerHTML = output[1];
-                                document.getElementById('post').innerHTML = output[2];
+                                draftList.innerHTML = output[1];
+                                postList.innerHTML = output[2];
                                 message.textContent = 'Changes saved successfully.'
-                                document.getElementById('btn-draft').hidden = output[0].meta.draft!='true';
-                                document.getElementById('btn-publish').textContent = output[0].meta.draft=='true' ? 'Publish' : 'Update';
-                                document.getElementById('btn-unpublish').hidden = output[0].meta.draft=='true';
+                                btnDraft.hidden = output[0].meta.draft!='true';
+                                btnPublish.textContent = output[0].meta.draft=='true' ? 'Publish' : 'Update';
+                                btnUnpublish.hidden = output[0].meta.draft=='true';
+                                listUpdate();
                             }else if(this.status == 304){
                                 message.textContent = 'No data changes..'
                             }
@@ -111,51 +145,58 @@
                     xhttp.open("POST", '/index.php?r=news', true);
                     var data = new FormData();
                     data.append('id', id);
-                    data.append('title', document.getElementById('title').value);
-                    data.append('category', document.getElementById('category').value);
-                    data.append('tags', document.getElementById('tags').value);
-                    data.append('content', document.getElementById('editor').value);
+                    data.append('title', title.value);
+                    data.append('category', category.value);
+                    data.append('tags', tags.value);
+                    data.append('content', editor.value);
                     data.append('type', this.name);
                     xhttp.send(data)         
                 })
             }
         }
-        posts = document.getElementsByClassName('posts')
-        if(posts){
-            for(i=0; i< posts.length; i++){
-                posts.item(i).addEventListener('click', function(e){
-                    e.preventDefault();
-                    var xhttp = new XMLHttpRequest();
-                    xhttp.onreadystatechange = function() {
-                        if (this.readyState == 4 && this.status == 200 && this.response) {
-                            output = JSON.parse(this.response)
-                            id = output.meta.id
-                            document.getElementById('title').value = output.meta.title;
-                            document.getElementById('category').value = output.meta.category;
-                            document.getElementById('tags').value = output.meta.tags;
-                            editor.value = output.content;
-                            preview.innerHTML = markdown.toHTML( output.content )
-                            document.getElementById('category').hidden = output.meta.draft=='true';
-                            document.getElementById('tags').hidden = output.meta.draft=='true';
-                            document.getElementById('btn-draft').hidden = output.meta.draft!='true';
-                            document.getElementById('btn-publish').textContent = output.meta.draft=='true' ? 'Publish' : 'Update';
-                            document.getElementById('btn-unpublish').hidden = output.meta.draft=='true';
-                        }
-                    };
-                    xhttp.open("GET", '/index.php?r=news&id='+this.getAttribute('href'), true);
-                    xhttp.send()
-                })
+        function listUpdate(){
+            posts = document.getElementsByClassName('posts')
+            if(posts){
+                for(i=0; i< posts.length; i++){
+                    posts.item(i).addEventListener('click', function(e){
+                        e.preventDefault();
+                        if(this.getAttribute('href') == id) return;
+                        alertDiv.hidden = true;
+                        var xhttp = new XMLHttpRequest();
+                        xhttp.onreadystatechange = function() {
+                            if (this.readyState == 4 && this.status == 200 && this.response) {
+                                output = JSON.parse(this.response)
+                                id = output.meta.id
+                                title.value = output.meta.title;
+                                category.value = output.meta.category;
+                                tags.value = output.meta.tags;
+                                editor.value = output.content;
+                                preview.innerHTML = markdown.toHTML( output.content )
+                                category.hidden = output.meta.draft=='true';
+                                tags.hidden = output.meta.draft=='true';
+                                btnDraft.hidden = output.meta.draft!='true';
+                                btnPublish.textContent = output.meta.draft=='true' ? 'Publish' : 'Update';
+                                btnUnpublish.hidden = output.meta.draft=='true';
+                            }
+                        };
+                        xhttp.open("GET", '/index.php?r=news&id='+this.getAttribute('href'), true);
+                        xhttp.send()
+                    })
+                }
             }
         }
+        listUpdate()
         newPost = document.getElementById('new')
         if(newPost){
             newPost.addEventListener('click', function(e){
                 e.preventDefault();
-                document.getElementById('title').value = '';
-                document.getElementById('editor').value= '';
-                document.getElementById('preview').innerHTML = '';
-                document.getElementById('category').hidden = true;
-                document.getElementById('tags').hidden = true;                
+                alertDiv.hidden = true;
+                title.value = '';
+                editor.value= '';
+                preview.innerHTML = '';
+                category.hidden = true;
+                tags.hidden = true;
+                id = null;                
             })
         }
     </script>
