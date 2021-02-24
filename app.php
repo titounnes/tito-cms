@@ -4,7 +4,7 @@
 class app{
     function __construct($config){
         session_start();
-        $this->session = $_SESSION['auth'];
+        $this->session = $_SESSION['auth']??'';
         $this->method = $_SERVER["REQUEST_METHOD"];
         $query_string = explode('&',str_replace("r=","",$_SERVER['QUERY_STRING']));
         $this->query_string = $query_string[0];
@@ -16,7 +16,7 @@ class app{
         $this->config = $config;
     }
 
-    function run(){
+    public function run(){
         if($this->query_string==""){
             if(!$this->session){
                 return $this->login();
@@ -29,15 +29,15 @@ class app{
         echo sprintf("Methode %s not found.", $this->query_string);
     }
 
-    function loadView(string $view){
+    private function loadView(string $view){
         return file_get_contents($this->config['html']. $view .'.html');
     }
 
-    function install($username, $password){
+    public function install($username, $password){
         $this->view(sprintf($this->loadView('install'), $username, $password));
     }
 
-    function login(){
+    public function login(){
         if($this->session){
             return $this->dashboard();
         }
@@ -47,7 +47,7 @@ class app{
             if($this->username === '' || $this->password === ''){
                 return $this->formLogin();
             }
-            $user = sprintf($this->config['auth'].'%s.json',$this->username);
+            $user = sprintf($this->config['path']['auth'].'%s.json',$this->username);
             if(!file_exists($user)){
                 $this->message = sprintf("Username %s not registered.", $this->username);
                 return $this->formLogin();        
@@ -62,15 +62,15 @@ class app{
         $this->formLogin();
     }
 
-    function formLogin(){
+    private function formLogin(){
         $this->view(sprintf($this->loadView('login'), $this->username, $this->password, $this->message));
     }
 
-    function success(){
+    private function success(){
         $this->view(sprintf($this->loadView('success'), $this->username));
     }
 
-    function open($name){
+    private function open($name){
         $path = $this->config['path']['draft'];
         $d = dir($path);
         if($d){
@@ -95,13 +95,14 @@ class app{
         $d->close();        
     }
     
-    function dashboard(){
+    private function dashboard(){
         $this->open('draft');
         $this->open('post');
         $this->view(sprintf($this->loadView('dashboard'), $this->draft, $this->post));
     }
 
-    function view($content){
+    private function view($content){
+        header("Content-type: text/html");
         echo str_replace("{{ content }}", $content, $this->loadView('template'));
     }
 
@@ -142,21 +143,23 @@ class app{
             $json = json_encode($data);
 
             file_put_contents($temp, $json);
-            header("Content-type: application/json");
             $this->open('draft');
             $this->open('post');
-            echo json_encode([json_decode($json),$this->draft,$this->post]);
-            return;
+            return $this->output(json_encode([json_decode($json),$this->draft,$this->post]));
         }
 
         $path = $this->config['path']['draft'].sprintf('/%d.json',$_GET['id']);    
         if(file_exists($path)){
-            header("Content-type: application/json");
-            echo file_get_contents($path);
+            $this->output(file_get_contents($path));
         }
     }
 
-    function read($path){
+    private function output($data){
+        header("Content-type: application/json");
+        echo $data;
+    }
+
+    private function read($path){
         $file = fopen($path,"r");
         $i = 0;
         $result = '';
