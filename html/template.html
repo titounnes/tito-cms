@@ -16,6 +16,8 @@
             body{
                 font-family: temporarium;
                 font-size: 18px;
+                background-color: #cccecd;
+                padding: 30px 0 px 10px 0px;
             }
             #preview{
                 border-color: darkslategrey;
@@ -27,8 +29,10 @@
                 word-wrap: break-word;
             }
             #editor{
-                background-color: rgb(11, 14, 10);
+                background-color: rgb(18, 35, 12);
                 color:rgb(169, 213, 221);
+                height: 380px;
+                overflow-y: auto;
             }
             #post, #draft{
                 max-height: 200px;
@@ -60,6 +64,16 @@
                 text-align: justify;
                 text-indent: 42px;
             }
+            ::placeholder{
+                color:rgb(224, 230, 231);
+                font-style: italic;
+            }
+            #alert{
+                padding-bottom: 0px;
+            }
+            .posts{
+                color: #0e0e0e;
+            }
         </style>
         <script>
             // if('serviceWorker' in navigator) {
@@ -81,8 +95,9 @@
         preview = document.getElementById('preview')
         message = document.getElementById('message')
         alertDiv = document.getElementById('alert');
-        title = document.getElementById('title')
-        tags = document.getElementById('tags')
+        title = document.getElementById('title');
+        description = document.getElementById('description');
+        tags = document.getElementById('tags');
         category = document.getElementById('category')
         draftList = document.getElementById('draft')
         postList = document.getElementById('post')
@@ -118,10 +133,8 @@
             for(i=0; i< submit.length; i++){
                 submit.item(i).addEventListener('click', function(e){
                     e.preventDefault();
-                    if(!document.getElementById('title').value){
-                        alertDiv.hidden = false;
-                        message.textContent = 'Title must be not null.'
-                        return;
+                    if(!title.value){
+                        return showMessage('Title must be not null.')
                     }
                     var xhttp = new XMLHttpRequest();
                     xhttp.onreadystatechange = function() {
@@ -132,20 +145,21 @@
                                 id = output[0].meta.id;
                                 draftList.innerHTML = output[1];
                                 postList.innerHTML = output[2];
-                                message.textContent = 'Changes saved successfully.'
+                                showMessage('Changes saved successfully.')
                                 btnDraft.hidden = output[0].meta.draft!='true';
                                 btnPublish.textContent = output[0].meta.draft=='true' ? 'Publish' : 'Update';
                                 btnUnpublish.hidden = output[0].meta.draft=='true';
-                                listUpdate();
-                            }else if(this.status == 304){
-                                message.textContent = 'No data changes..'
+                                return listUpdate();
                             }
+                            if(this.status == 304) return showMessage('No title is set..')
+                            if(this.status == 305) return showMessage('No category is set..')
                         }
                     };
                     xhttp.open("POST", '/index.php?r=news', true);
                     var data = new FormData();
                     data.append('id', id);
                     data.append('title', title.value);
+                    data.append('description', description.value);
                     data.append('category', category.value);
                     data.append('tags', tags.value);
                     data.append('content', editor.value);
@@ -168,12 +182,11 @@
                                 output = JSON.parse(this.response)
                                 id = output.meta.id
                                 title.value = output.meta.title;
+                                description.value = output.meta.description;
                                 category.value = output.meta.category;
                                 tags.value = output.meta.tags;
                                 editor.value = output.content;
                                 preview.innerHTML = markdown.toHTML( output.content )
-                                category.hidden = output.meta.draft=='true';
-                                tags.hidden = output.meta.draft=='true';
                                 btnDraft.hidden = output.meta.draft!='true';
                                 btnPublish.textContent = output.meta.draft=='true' ? 'Publish' : 'Update';
                                 btnUnpublish.hidden = output.meta.draft=='true';
@@ -195,9 +208,21 @@
                 editor.value= '';
                 preview.innerHTML = '';
                 category.hidden = true;
+                description.hidden = true;
                 tags.hidden = true;
                 id = null;                
             })
+        }
+        var timer = 0;
+        var alertStatus;
+        function showMessage(text){
+            alertDiv.hidden = false;
+            message.textContent = text; 
+            alertStatus = setInterval(hideMessage, 2000)
+        }
+        function hideMessage(){
+            alertDiv.hidden = true;
+            clearInterval(alertStatus)
         }
     </script>
 </html>    

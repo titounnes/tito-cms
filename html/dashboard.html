@@ -1,17 +1,18 @@
 <div class="row">
     <div class="col-2">
-        <h1>Draft</h1>
+        <h2>Draft</h3>
         <ul id="draft">%s</ul>
-        <h1>Publish</h1>
+        <h3>Publish</h3>
         <ul id="post">%s</ul>
         <a class="btn btn-primary" href="#" id="new">Create New</a>
     </div>
     <div class="col-5">
         <form method="post" action="/index.php?r=news">
             <input id="title" type="text" name="title" value="" class="form-control" required placeholder="Title">
-            <textarea id="editor" name="content" class="form-control" style="height:400px;overflow-y: auto;"></textarea>
-            <input type="text" id="category" value="" class="form-control" placeholder="Category" hidden>
-            <input type="text" id="tags" value="" class="form-control" placeholder="Tags" hidden>
+            <input id="description" type="text" name="description" value="" class="form-control" required placeholder="description">
+            <textarea id="editor" name="content" class="form-control" ></textarea>
+            <input type="text" id="category" value="" class="form-control" placeholder="Category">
+            <input type="text" id="tags" value="" class="form-control" placeholder="Tags">
             <hr>
             <button class="btn btn-primary submit" id="btn-draft" name="draft">Save As Draft</button>
             <button class="btn btn-primary submit" id="btn-publish"  name="publish">Publish</button>
