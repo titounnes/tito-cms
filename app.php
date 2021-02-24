@@ -1,6 +1,16 @@
 <?php if(! defined('APPPATH')) {
     header('location: index.php');
 }
+
+/**
+ * This file is core of Tito-CMS.
+ *
+ * e-project-tech.com <harjito@mail.unnes.ac.id>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 class app{
     function __construct($config){
         session_start();
