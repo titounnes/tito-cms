@@ -1,0 +1,7 @@
+<?php
+echo "\n";
+echo "Tito-CMS  Line Tool - Server Time: ".date('Y-m-d H:i:s')."\n\n";
+echo "Tito-CMS development server started on http://localhost:2306\n";
+echo"Press Control-C to stop.\n";
+define("FCPATH", __DIR__. "/public"); 
+shell_exec("php -S localhost:2306 -t ".FCPATH);
