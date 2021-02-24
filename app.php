@@ -47,7 +47,7 @@ class app{
             if($this->username === '' || $this->password === ''){
                 return $this->formLogin();
             }
-            $user = sprintf(APPPATH.'data/%s.json',$this->username);
+            $user = sprintf($this->config['auth'].'%s.json',$this->username);
             if(!file_exists($user)){
                 $this->message = sprintf("Username %s not registered.", $this->username);
                 return $this->formLogin();        
@@ -123,9 +123,9 @@ class app{
             }
             $content = $_POST['content'];
             $name = sprintf("%d.json",$id);
-            $temp = APPPATH . $this->config['path']['draft'].'/'.$name;
+            $temp = $this->config['path']['draft'].'/'.$name;
             if(!file_exists($temp)){
-                $data = json_decode(file_get_contents(APPPATH. 'template/default.json'));
+                $data = json_decode(file_get_contents($this->config['template']. 'default.json'));
             }else{
                 $data = json_decode(file_get_contents($temp));
             }
@@ -140,6 +140,7 @@ class app{
             $data->meta->tags = $tags;
             $data->content = $content;  
             $json = json_encode($data);
+
             file_put_contents($temp, $json);
             header("Content-type: application/json");
             $this->open('draft');
@@ -148,7 +149,7 @@ class app{
             return;
         }
 
-        $path = APPPATH . $this->config['path']['draft'].sprintf('/%d.json',$_GET['id']);    
+        $path = $this->config['path']['draft'].sprintf('/%d.json',$_GET['id']);    
         if(file_exists($path)){
             header("Content-type: application/json");
             echo file_get_contents($path);
