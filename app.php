@@ -11,10 +11,25 @@
  * file that was distributed with this source code.
  */
 
+ /**
+ * Class app
+ */
+
 class app{
-    function __construct($config){
+
+    //--------------------------------------------------------------------
+
+	/**
+	 * Constructor.
+	 *
+	 * @param array  $config
+	 *
+	 * @throws HTTPException
+	 */
+
+    function __construct(array $config){
         session_start();
-        $this->session = $_SESSION['auth']??'';
+        $this->session = $_SESSION[$config['session_name']];
         $this->method = $_SERVER["REQUEST_METHOD"];
         $query_string = explode('&',str_replace("r=","",$_SERVER['QUERY_STRING']));
         $this->query_string = $query_string[0];
@@ -39,10 +54,6 @@ class app{
         echo sprintf("Methode %s not found.", $this->query_string);
     }
 
-    private function loadView(string $view){
-        return file_get_contents($this->config['html']. $view .'.html');
-    }
-
     public function install($username, $password){
         $this->view(sprintf($this->loadView('install'), $username, $password));
     }
@@ -64,7 +75,7 @@ class app{
             }
             $data = json_decode(file_get_contents($user));
             if(password_verify($this->password, $data->password)){
-                $_SESSION['auth'] = ($data->profile);
+                $_SESSION[$this->config['session_name']] = ($data->profile);
                 return $this->success();
             }
             $this->message = sprintf("Hi %s. Your password is mismatch.", $this->username);
@@ -72,51 +83,7 @@ class app{
         $this->formLogin();
     }
 
-    private function formLogin(){
-        $this->view(sprintf($this->loadView('login'), $this->username, $this->password, $this->message));
-    }
-
-    private function success(){
-        $this->view(sprintf($this->loadView('success'), $this->username));
-    }
-
-    private function open($name){
-        $path = $this->config['path']['draft'];
-        $d = dir($path);
-        if($d){
-            $dir = [];
-            $id = [];
-            $this->{$name} = '';
-            while (false !== ($entry = $d->read())) {
-                if(filetype($path.$entry)==='file'){
-                    $meta = json_decode(file_get_contents($path.$entry))->meta;
-                    if($name=='draft'){
-                        if($meta->draft == 'true'){
-                            $this->{$name} .= sprintf('<li><a href="%d" class="posts">%s</a></li>',$meta->id, $meta->title);
-                        }
-                    }else{
-                        if($meta->draft == 'false'){
-                            $this->{$name} .= sprintf('<li><a href="%d" class="posts">%s</a></li>',$meta->id, $meta->title);
-                        }
-                    }
-                }
-            }
-        }
-        $d->close();        
-    }
-    
-    private function dashboard(){
-        $this->open('draft');
-        $this->open('post');
-        $this->view(sprintf($this->loadView('dashboard'), $this->draft, $this->post));
-    }
-
-    private function view($content){
-        header("Content-type: text/html");
-        echo str_replace("{{ content }}", $content, $this->loadView('template'));
-    }
-
-    function news(){
+    public function news(){
         if($this->method=="POST"){
             $type = $_POST['type'];
             $title = $_POST['title'];
@@ -162,6 +129,55 @@ class app{
         if(file_exists($path)){
             $this->output(file_get_contents($path));
         }
+    }
+
+    private function loadView(string $view){
+        return file_get_contents($this->config['html']. $view .'.html');
+    }
+
+
+    private function formLogin(){
+        $this->view(sprintf($this->loadView('login'), $this->username, $this->password, $this->message));
+    }
+
+    private function success(){
+        $this->view(sprintf($this->loadView('success'), $this->username));
+    }
+
+    private function open($name){
+        $path = $this->config['path']['draft'];
+        $d = dir($path);
+        if($d){
+            $dir = [];
+            $id = [];
+            $this->{$name} = '';
+            while (false !== ($entry = $d->read())) {
+                if(filetype($path.$entry)==='file'){
+                    $meta = json_decode(file_get_contents($path.$entry))->meta;
+                    if($name=='draft'){
+                        if($meta->draft == 'true'){
+                            $this->{$name} .= sprintf('<li><a href="%d" class="posts">%s</a></li>',$meta->id, $meta->title);
+                        }
+                    }else{
+                        if($meta->draft == 'false'){
+                            $this->{$name} .= sprintf('<li><a href="%d" class="posts">%s</a></li>',$meta->id, $meta->title);
+                        }
+                    }
+                }
+            }
+        }
+        $d->close();        
+    }
+    
+    private function dashboard(){
+        $this->open('draft');
+        $this->open('post');
+        $this->view(sprintf($this->loadView('dashboard'), $this->draft, $this->post));
+    }
+
+    private function view($content){
+        header("Content-type: text/html");
+        echo str_replace("{{ content }}", $content, $this->loadView('template'));
     }
 
     private function output($data){

@@ -8,5 +8,6 @@ $config = [
         'auth' => APPPATH . 'data/',
     ],
     'html' => APPPATH . 'html/',
-    'template' => APPPATH . 'template/'
+    'template' => APPPATH . 'template/',
+    'session_name' => 'auth',
 ];
