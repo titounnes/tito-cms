@@ -88,7 +88,7 @@ class app{
             $type = $_POST['type'];
             $title = $_POST['title'];
             $id = $_POST['id'];
-            $category = $_POST['category'];
+            $category = $_POST['category']??'Uncategories';
             $tags = $_POST['tags'];
             if($title==''){
                 header('HTTP/1.1 304 Not Modified');
@@ -122,6 +122,9 @@ class app{
             file_put_contents($temp, $json);
             $this->open('draft');
             $this->open('post');
+            if($type!='draft'){
+                $this->generate($data, $type);
+            }
             return $this->output(json_encode([json_decode($json),$this->draft,$this->post]));
         }
 
@@ -129,6 +132,24 @@ class app{
         if(file_exists($path)){
             $this->output(file_get_contents($path));
         }
+    }
+
+    private function generate($data, $type){
+        $meta = $data->meta;
+        $category = $this->config['path']['hugo'].$meta->category.'/';
+        if(!is_dir($category)){
+            mkdir($category, 0755);
+        } 
+        $path = $category.$data->meta->id.'.md';
+        file_put_contents($path, "---\n");
+        file_put_contents($path, "title: \"".$meta->title."\"\n", FILE_APPEND);
+        file_put_contents($path, "author: \"".$meta->author."\"\n", FILE_APPEND);
+        file_put_contents($path, "date: \'".$meta->date."\"\n", FILE_APPEND);
+        file_put_contents($path, "tags: [\"".implode('","',explode(";", $meta->tags))."\"]\n", FILE_APPEND);
+        file_put_contents($path, "draft: ".($type!='publish' ? 'true' : 'false') ."\n", FILE_APPEND);
+        file_put_contents($path, "---\n\n", FILE_APPEND);
+        file_put_contents($path, $data->content, FILE_APPEND);
+        file_put_contents($path, $category, FILE_APPEND);
     }
 
     private function loadView(string $view){
