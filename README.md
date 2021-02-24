@@ -10,5 +10,9 @@ Tito-CMS adalah markdown editor untuk HUGO. Tito-CMS berfungsi sebagai editor on
 - jalankan perintah php serve (Aplikasi akan melakukan instalasi sesuai dengan konfigurasi yang kita tentukan)
 - aplikasi ini menggunakan markdown.js CDN sehingga diperlukan koneksi internet
 
+## Todo
+- Transfer data ke directory contnt di HUGO
+- Menjalankan HUGO cli untuk deploy  hasil generate konten ke direktory public di HUGO
+  
 ## Credit
 - [Markdown.js](https://github.com/evilstreak/markdown-js/) 
