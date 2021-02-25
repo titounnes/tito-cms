@@ -3,7 +3,6 @@
 }
 $config = [
     'path' => [
-        'draft' => APPPATH .'draft/',
         'hugo' => APPPATH . 'content/',//sesiakan dengan direktori kerja hugo Anda
         'auth' => APPPATH . 'data/',
     ],
