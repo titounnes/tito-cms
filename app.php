@@ -36,8 +36,8 @@ class app{
         $this->username = '';
         $this->password = ''; 
         $this->message = '';
-        $this->draft = "";
         $this->post = [];
+        $this->categories = '';
         $this->config = $config;
     }
 
@@ -83,12 +83,17 @@ class app{
         $this->formLogin();
     }
 
+    public function logout(){
+        session_destroy();
+        header("location: index.php");
+    }
+
     public function news(){
         if($this->method=="POST"){
             $type = $_POST['type'];
             $title = $_POST['title'];
             $id = $_POST['id'];
-            $category = $_POST['category']??'Uncategories';
+            $category = $_POST['category'];
             $tags = $_POST['tags'];
             if($title==''){
                 header('HTTP/1.1 304 Not Modified');
@@ -100,56 +105,93 @@ class app{
                 $new = true; 
             }
             $content = $_POST['content'];
-            $name = sprintf("%d.json",$id);
-            $temp = $this->config['path']['draft'].'/'.$name;
-            if(!file_exists($temp)){
-                $data = json_decode(file_get_contents($this->config['template']. 'default.json'));
-            }else{
-                $data = json_decode(file_get_contents($temp));
+            
+            $meta = [
+                'id' => $id,
+                'category' => $category,
+                'title' => $title,
+                'author' =>  $this->session->name,
+                'draft' => $type=='draft' ? 'true' : ($type=='publish' ?'false' : 'true'),
+                'date' => date('Y-m-d H:i:s',strtotime($id)),
+                'tags' => $tags
+            ];
+            if($category != $_SESSION['category'] && $id==$_SESSION['id_article']){
+                unlink($this->config['path']['hugo'].$_SESSION['category'].'/'.$id.'.md');
             }
-            if($new){
-                $data->meta->id = $id;
-                $data->meta->author = $this->session->name;
-                $data->meta->date = date('Y-m-d H:i:s').'+07:00';
+            
+            if(!$category){
+                $category = 'Uncategories';
             }
-            $data->meta->title = $title;
-            $data->meta->draft = $type=='draft' ? 'true' : ($type=='publish' ?'false' : 'true');
-            $data->meta->category = $category;
-            $data->meta->tags = $tags;
-            $data->content = $content;  
-            $json = json_encode($data);
+            $_SESSION['category'] = $category;
+            $_SESSION['id'] = $id;
 
-            file_put_contents($temp, $json);
-            $this->open('draft');
-            $this->open('post');
-            if($type!='draft'){
-                $this->generate($data, $type);
+             
+            $path = $this->config['path']['hugo'].$category.'/';
+            if(!is_dir($path)){
+                mkdir($path, 0755);
             }
-            return $this->output(json_encode([json_decode($json),$this->draft,$this->post]));
+            $text = "---\n";
+            foreach($meta as $key=>$val){
+                $text .= sprintf("%s: %s\n",$key,$val);
+            }
+            $text .= "---\n\n";
+            $text .= $content;
+
+            $path = $this->config['path']['hugo'].sprintf('%s/%s.md',$category, $id);
+            file_put_contents($path, $text);
+            $this->open();
+            return $this->output(json_encode(['id'=>$id,'draft'=>$type]));
         }
 
-        $path = $this->config['path']['draft'].sprintf('/%d.json',$_GET['id']);    
-        if(file_exists($path)){
-            $this->output(file_get_contents($path));
+        $path =$this->config['path']['hugo'];
+        $id = $_GET['id'];
+        $dir = dir($path);
+        $category = '';
+        $target = '';
+        $target = $path;
+        while (false !== ($entry = $dir->read())) {
+            if(filetype($path.$entry)==='dir' &&  ! in_array($entry, ['.','..'] )){
+                $category = $entry;
+                $subpath = $path.$entry.'/';
+                $subdir = dir($subpath);
+                while(false !== ($subentry = $subdir->read())){
+                    if(filetype($subpath.$subentry)==='file' && $subentry == $id.'.md'){
+                        $target = $subpath.$subentry;
+                        break;
+                    }
+                }
+            }
         }
+        $dir->close();
+        $_SESSION['id_article'] = $id;
+        $_SESSION['category'] = $category;
+        $this->output(json_encode($this->getContent($target)));
     }
 
     private function generate($data, $type){
         $meta = $data->meta;
+        if(!$meta->category){
+            $meta->category = 'uncategorized';
+        }
         $category = $this->config['path']['hugo'].$meta->category.'/';
         if(!is_dir($category)){
             mkdir($category, 0755);
         } 
+        $text = "---\n";
+        foreach($meta as $key=>$val){
+            if(in_array($key, ['title','author','description','featured_image','featured_video','category'])){
+                $text .= sprintf("%s: \"%s\"\n",$key,$val);
+            }else if($key=='tags'){
+                $text .= sprintf("%s: [\"%s\"]\n",$key,implode("\",\"",explode(";",str_replace([",","; ",", "],";",$val))));
+            }else{
+                $text .= sprintf("%s: %s\n",$key,$val);
+            }
+            
+        }
+        $text .= "---\n\n";
+        $text .= $data->content;
         $path = $category.$data->meta->id.'.md';
-        file_put_contents($path, "---\n");
-        file_put_contents($path, "title: \"".$meta->title."\"\n", FILE_APPEND);
-        file_put_contents($path, "author: \"".$meta->author."\"\n", FILE_APPEND);
-        file_put_contents($path, "date: \'".$meta->date."\"\n", FILE_APPEND);
-        file_put_contents($path, "tags: [\"".implode('","',explode(";", $meta->tags))."\"]\n", FILE_APPEND);
-        file_put_contents($path, "draft: ".($type!='publish' ? 'true' : 'false') ."\n", FILE_APPEND);
-        file_put_contents($path, "---\n\n", FILE_APPEND);
-        file_put_contents($path, $data->content, FILE_APPEND);
-        file_put_contents($path, $category, FILE_APPEND);
+        file_put_contents($path, $text);
     }
 
     private function loadView(string $view){
@@ -165,60 +207,91 @@ class app{
         $this->view(sprintf($this->loadView('success'), $this->username));
     }
 
-    private function open($name){
-        $path = $this->config['path']['draft'];
-        $d = dir($path);
-        if($d){
-            $dir = [];
-            $id = [];
-            $this->{$name} = '';
-            while (false !== ($entry = $d->read())) {
-                if(filetype($path.$entry)==='file'){
-                    $meta = json_decode(file_get_contents($path.$entry))->meta;
-                    if($name=='draft'){
-                        if($meta->draft == 'true'){
-                            $this->{$name} .= sprintf('<li><a href="%d" class="posts">%s</a></li>',$meta->id, $meta->title);
-                        }
-                    }else{
-                        if($meta->draft == 'false'){
-                            $this->{$name} .= sprintf('<li><a href="%d" class="posts">%s</a></li>',$meta->id, $meta->title);
+    private function open(){
+        $path =$this->config['path']['hugo'];
+        $dir = dir($path);
+        $this->categories = '<option value="">Choose One</option>';
+        $categories = [];
+        $this->post = '';
+        while (false !== ($entry = $dir->read())) {
+            if(filetype($path.$entry)==='dir' &&  ! in_array($entry, ['.','..'] )){
+                if(!in_array($entry, $categories)){
+                    $categories[] = $entry;
+                    $this->categories .= sprintf('<option value="%s">%s</option>',$entry,$entry); 
+                }
+                $subpath = $path.$entry.'/';
+                $subdir = dir($subpath);
+                while(false !== ($subentry = $subdir->read())){
+                    if(filetype($subpath.$subentry)==='file'){
+                        $ext = explode('.', $subentry);
+                        if($ext[1] =='md'){
+                            $meta = $this->getMeta($subpath.$subentry);
+                            $this->post .= sprintf("<li><a href=\"%d\" class=\"posts\">%s <span id=\"status-%s\" class=\"badge\">%s</span></a></li>",$ext[0], trim($meta['title'],'"'), $ext[0], $meta['draft']=='true' ? 'Draft' : 'Publish' ); 
                         }
                     }
                 }
             }
         }
-        $d->close();        
+        $dir->close();
     }
     
-    private function dashboard(){
-        $this->open('draft');
-        $this->open('post');
-        $this->view(sprintf($this->loadView('dashboard'), $this->draft, $this->post));
+    private function getMeta($path){
+        $content = file_get_contents($path);
+        $a = strpos($content, '---',  3);
+        $metaMd = substr($content, 0, $a);
+        $metaObj = explode("\n", $metaMd);
+        $len = count($metaObj);
+        $meta = [];
+        foreach($metaObj as $k=>$val){
+            if($k>0 && $k <$len-1){
+                $metadata = explode(': ', $val);
+                $meta[$metadata[0]] = $metadata[1];
+            }
+        }
+        return $meta; 
     }
 
-    private function view($content){
+    private function getContent($path){
+        if(!file_exists($path)){
+            return false;
+        }
+        $content = file_get_contents($path);
+        $a = strpos($content, '---',  3);
+        $metaMd = substr($content, 0, $a);
+        $metaObj = explode("\n", $metaMd);
+        $len = count($metaObj);
+        $meta = [];
+        foreach($metaObj as $k=>$val){
+            if($k>0 && $k <$len-1){
+                $metadata = explode(': ', $val);
+                if(in_array($metadata[0], ['title','description'])){
+                    $meta[$metadata[0]] = trim($metadata[1],'"');
+                }else if($metadata[0]=='tags'){
+                    $meta[$metadata[0]] = str_replace('","',"; ",trim($metadata[1], '"[]'));
+                }else{
+                    $meta[$metadata[0]] = $metadata[1];
+                }
+                
+            }
+        }
+
+        return ['meta'=>$meta, 'content' => $content = str_replace($metaMd."---\n\n", '', $content)]; 
+    }
+
+    private function dashboard(){
+        $this->open();
+        $this->view(sprintf($this->loadView('dashboard'), $this->post, $this->categories), $this->loadView('menu_'.$this->session->role));
+    }
+
+    private function view($content, $menu= ''){
         header("Content-type: text/html");
-        echo str_replace("{{ content }}", $content, $this->loadView('template'));
+        $html = str_replace("{{ content }}", $content, $this->loadView('template'));
+        $html = str_replace("{{ menu }}", $menu, $html);
+        echo $html;
     }
 
     private function output($data){
         header("Content-type: application/json");
         echo $data;
-    }
-
-    private function read($path){
-        $file = fopen($path,"r");
-        $i = 0;
-        $result = '';
-        while(! feof($file))
-        {
-            $line = fgets($file);
-            if($i>3){
-                $result .= $line;  
-            }
-            $i++;
-        }
-        fclose($file);
-        echo $result;
     }
 }
